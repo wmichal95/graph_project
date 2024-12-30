@@ -12,7 +12,7 @@ class CONST:
     CANVAS_HEIGHT_PX = APP_HEIGHT_PX - 40
 
     RANDOM_GRAPH_POINTS = 50
-    POINT_RADIUS = 1
+    POINT_RADIUS = 5
     EDGE_WIDTH = .5
 
     FDG_ITERATIONS = 300
@@ -28,10 +28,9 @@ class CONST:
 class Graph(tk.Canvas):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.nodes = {}  # node_from: [node_to] -> node_from: [(node_to, weight)]
+        self.nodes = {}  # node_from: [node_to, ...]
         self.selected = []  # list of node_id
         self.edges = {}  # (node_from, node_to): edge_id
-        self.texts = {}  # edge_id: text_id
 
     def on_click(self, event):
         clicked_node = self.find_withtag("current")
@@ -68,10 +67,7 @@ class Graph(tk.Canvas):
                 self.tag_lower(edge_id)
                 self.edges[(n1, n2)] = edge_id
 
-                weight = self._calc_node_distances(n1, n2)
-                self._add_text_on_line(edge_id, weight)
-
-                self.nodes[n1].append((n2, weight))
+                self.nodes[n1].append(n2)
 
             self.itemconfig(n1, fill=CONST.NODE_NON_SELECTED_COLOR)
 
@@ -98,10 +94,9 @@ class Graph(tk.Canvas):
         self.nodes = {}
         self.selected = []
         self.edges = {}
-        self.texts = {}
         self.delete("all")
 
-    def add_one_side_edges(self, hide_text=False, arrow=True):
+    def add_one_side_edges(self, arrow=True):
         for i, n1 in enumerate(self.selected):
             for j, n2 in enumerate(self.selected):
                 if i >= j or (n1, n2) in self.edges:
@@ -114,11 +109,7 @@ class Graph(tk.Canvas):
                 self.tag_lower(edge_id)
                 self.edges[(n1, n2)] = edge_id
 
-                weight = self._calc_node_distances(n1, n2)
-                if not hide_text:
-                    self._add_text_on_line(edge_id, weight)
-
-                self.nodes[n1].append((n2, weight))
+                self.nodes[n1].append(n2)
 
             self.itemconfig(n1, fill=CONST.NODE_NON_SELECTED_COLOR)
 
@@ -161,7 +152,7 @@ class Graph(tk.Canvas):
         nodes_edges = []
 
         for n1_id, nodes in self.nodes.items():
-            for n2_id, _ in nodes:
+            for n2_id in nodes:
                 nodes_edges.append((n1_id, n2_id))
 
         fdg = ForceDirectGraph(
@@ -241,6 +232,7 @@ class Graph(tk.Canvas):
                 lines.extend([x1, y1, x2, y2])
 
         z = self.create_line(lines, fill=CONST.EDGE_COLOR, width=CONST.EDGE_WIDTH)
+        # todo
 
         '''
         def put_node(nodes: list):
@@ -289,34 +281,13 @@ class Graph(tk.Canvas):
         x2, y2 = self._get_node_center(n2)
         self.coords(edge, x1, y1, x2, y2)
 
-        new_weight = self._calc_node_distances(n1, n2)
-        # self._update_text(edge, text=new_weight)
-        self.nodes[n1] = [(id_, new_weight) if id_ == n2 else (id_, weight) for (id_, weight) in self.nodes[n1]]
+        self.nodes[n1] = [id_ if id_ == n2 else id_ for id_ in self.nodes[n1]]
 
     def _get_node_center(self, node_id):
         coords = self.coords(node_id)
         x_center = (coords[0] + coords[2]) / 2
         y_center = (coords[1] + coords[3]) / 2
         return x_center, y_center
-
-    def _add_text_on_line(self, edge, text):
-        coords = self.coords(edge)
-        x_center = (coords[0] + coords[2]) / 2
-        y_center = (coords[1] + coords[3]) / 2
-
-        text_id = self.create_text(x_center, y_center, text=text, fill="black", font=("Arial", 10, "bold"))
-
-        self.texts[edge] = text_id
-
-    def _update_text(self, edge, text):
-        edge_coords = self.coords(edge)
-        x_center = (edge_coords[0] + edge_coords[2]) / 2
-        y_center = (edge_coords[1] + edge_coords[3]) / 2
-
-        text_id = self.texts[edge]
-
-        self.coords(text_id, x_center, y_center)
-        self.itemconfig(text_id, text=f"{text}")
 
     def _calc_node_distances(self, n1, n2):
         x1, y1 = self._get_node_center(n1)
