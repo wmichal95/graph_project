@@ -241,7 +241,7 @@ class Graph(tk.Canvas):
         self.update()
         self.louvain_method()
 
-    def louvain_method(self): #TODO zmianiać rozmiar node'a w zależności od połączeń ?
+    def louvain_method(self):
         # Step 1: Initialization - Each community is a single node
         current_partition = {node: node for node in self.nodes}
         current_modularity = self._calculate_modularity(self.nodes, current_partition)
@@ -280,7 +280,7 @@ class Graph(tk.Canvas):
         print(f"Best modularity: {best_modularity}")
 
         if len(self.nodes) < 100:
-            #todo wyrysować to na nowo
+            # todo wyrysować to na nowo
             def random_hex_color():
                 return f'#{random.randint(0, 0xFFFFFF):06x}'
 
@@ -305,6 +305,8 @@ class Graph(tk.Canvas):
                 for neighbor in self.nodes[member]:
                     if neighbor not in members:
                         new_neighbors.add(best_partition[neighbor])
+                    else:
+                        self.resize_node(member, 1.5)
 
             new_nodes[community] = list(new_neighbors)
 
@@ -314,7 +316,7 @@ class Graph(tk.Canvas):
         self.edges = {}
         self.update()
 
-        for node in self.nodes.keys(): #TODO dodać kolorki, może kolorki krawędzi ?
+        for node in self.nodes.keys():  # TODO dodać kolorki, może kolorki krawędzi ?
             if node in new_nodes.keys():
                 if len(new_nodes[node]) == 0 and node not in list(chain(*new_nodes.values())):
                     self.delete(node)
@@ -334,6 +336,14 @@ class Graph(tk.Canvas):
         self.nodes = new_nodes
 
         print('Louvain done')
+
+    def resize_node(self, node_id, r):
+        x1, y1, x2, y2 = self.coords(node_id)
+        cx = (x1 + x2) / 2
+        cy = (y1 + y2) / 2
+        current_radius = (x2 - x1) / 2
+        new_radius = current_radius + r
+        self.coords(node_id, cx - new_radius, cy - new_radius, cx + new_radius, cy + new_radius)
 
     def _calculate_modularity(self, nodes, partition):
         m = sum(len(neighbors) for neighbors in nodes.values()) // 2  # Liczba krawędzi w grafie
