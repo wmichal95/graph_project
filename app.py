@@ -2,7 +2,6 @@ import tkinter as tk
 from graph import Graph, CONST
 
 
-# TODO Louvain Method
 def build_tk():
     root = tk.Tk()
     root.title("Graph project")
@@ -32,6 +31,9 @@ def build_tk():
 
     random_graph_btn = tk.Button(row2, text="Random graph", command=canvas.generate_random_graph)
     random_graph_btn.pack(side=tk.LEFT)
+
+    louvain_btn = tk.Button(row2, text="Louvain method", command=canvas.louvain_method)
+    louvain_btn.pack(side=tk.LEFT)
 
     force_direct_graph_btn = tk.Button(row2, text="Force-direct graph", command=canvas.force_direct_graph_algorithm)
     force_direct_graph_btn.pack(side=tk.LEFT)
