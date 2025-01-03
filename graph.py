@@ -17,10 +17,10 @@ class CONST:
     POINT_RADIUS = 1
     EDGE_WIDTH = .5
 
-    FDG_ITERATIONS = 800
-    FDG_REPULSION_CONSTANT = 8000
-    FDG_ATTRACTION_CONSTANT = 0.3
-    FDG_DAMPING_CONSTANT = 0.05
+    FDG_ITERATIONS = 100
+    FDG_REPULSION_CONSTANT = 6000
+    FDG_ATTRACTION_CONSTANT = 0.03
+    FDG_DAMPING_CONSTANT = 1
 
     NODE_NON_SELECTED_COLOR = 'blue'
     NODE_SELECTED_COLOR = 'yellow'
@@ -33,6 +33,56 @@ class Graph(tk.Canvas):
         self.nodes = {}  # node_from: [node_to, ...]
         self.selected = []  # list of node_id
         self.edges = {}  # (node_from, node_to): edge_id
+        self.colors = ['#e62e2e',
+                       '#e6442e',
+                       '#e65a2e',
+                       '#e6702e',
+                       '#e6862e',
+                       '#e69c2e',
+                       '#e6b22e',
+                       '#e6c82e',
+                       '#e6de2e',
+                       '#d7e62e',
+                       '#c1e62e',
+                       '#abe62e',
+                       '#95e62e',
+                       '#7fe62e',
+                       '#69e62e',
+                       '#53e62e',
+                       '#3de62e',
+                       '#2ee635',
+                       '#2ee64b',
+                       '#2ee661',
+                       '#2ee677',
+                       '#2ee68d',
+                       '#2ee6a3',
+                       '#2ee6b9',
+                       '#2ee6cf',
+                       '#2ee6e6',
+                       '#2ecfe6',
+                       '#2eb9e6',
+                       '#2ea3e6',
+                       '#2e8de6',
+                       '#2e77e6',
+                       '#2e61e6',
+                       '#2e4be6',
+                       '#2e35e6',
+                       '#3d2ee6',
+                       '#532ee6',
+                       '#692ee6',
+                       '#7f2ee6',
+                       '#952ee6',
+                       '#ab2ee6',
+                       '#c12ee6',
+                       '#d72ee6',
+                       '#e62ede',
+                       '#e62ec8',
+                       '#e62eb2',
+                       '#e62e9c',
+                       '#e62e86',
+                       '#e62e70',
+                       '#e62e5a',
+                       '#e62e44']
 
     def on_click(self, event):
         clicked_node = self.find_withtag("current")
@@ -259,9 +309,15 @@ class Graph(tk.Canvas):
                 for neighbor in self.nodes[node]:
                     neighbor_communities[current_partition[neighbor]] += 1
 
-                best_community = max(neighbor_communities, key=neighbor_communities.get, default=current_community)
+                if len(self.nodes[node]) == 0:
+                    for n_id, neighbors in self.nodes.items():
+                        if node in neighbors:
+                            neighbor_community = best_partition[n_id]
+                            neighbor_communities[neighbor_community] += 1
 
-                if best_community != current_community:
+                best_community = max(neighbor_communities, key=neighbor_communities.get, default=None)
+
+                if best_community != current_community and best_community is not None:
                     current_partition[node] = best_community
                     improved = True
 
@@ -272,23 +328,20 @@ class Graph(tk.Canvas):
                 best_partition = current_partition
                 best_modularity = new_modularity
 
-            if not improved or new_modularity <= current_modularity:
+            if not improved:
                 break
-
-            current_modularity = new_modularity
 
         print(f"Best modularity: {best_modularity}")
 
+        if len(set(best_partition.values())) <= 50:
+            community_colors = {value: self.colors.pop() for value in set(best_partition.values())}
+        else:
+            community_colors = {value: self._get_random_hex_color() for value in set(best_partition.values())}
+
         if len(self.nodes) < 100:
-            # todo wyrysować to na nowo
-            def random_hex_color():
-                return f'#{random.randint(0, 0xFFFFFF):06x}'
-
-            communities_values = set(best_partition.values())
-            value_to_color = {value: random_hex_color() for value in communities_values}
-
             for node_id in self.nodes:
-                self.itemconfig(node_id, fill=value_to_color[best_partition[node_id]])
+                self.itemconfig(node_id, fill=community_colors[best_partition[node_id]])
+                self.resize_node(node_id, 8)
 
             return
 
@@ -300,13 +353,12 @@ class Graph(tk.Canvas):
 
         new_nodes = {}
         for community, members in communities.items():
+            self.itemconfig(community, fill=community_colors[community])
             new_neighbors = set()
             for member in members:
                 for neighbor in self.nodes[member]:
                     if neighbor not in members:
                         new_neighbors.add(best_partition[neighbor])
-                    else:
-                        self.resize_node(member, 1.5)
 
             new_nodes[community] = list(new_neighbors)
 
@@ -316,7 +368,7 @@ class Graph(tk.Canvas):
         self.edges = {}
         self.update()
 
-        for node in self.nodes.keys():  # TODO dodać kolorki, może kolorki krawędzi ?
+        for node in self.nodes.keys():
             if node in new_nodes.keys():
                 if len(new_nodes[node]) == 0 and node not in list(chain(*new_nodes.values())):
                     self.delete(node)
@@ -335,6 +387,10 @@ class Graph(tk.Canvas):
         self.update()
         self.nodes = new_nodes
 
+        for node in self.nodes:
+            self.resize_node(node, 8)
+
+        self.update()
         print('Louvain done')
 
     def resize_node(self, node_id, r):
@@ -399,3 +455,14 @@ class Graph(tk.Canvas):
             min(CONST.CANVAS_HEIGHT_PX - (2 * CONST.POINT_RADIUS), y)
         )
         return x, y
+
+    def _get_random_hex_color(self) -> str:
+        color = None
+
+        while color is None:
+            temp = f'#{random.randint(0, 0xFFFFFF):06x}'
+            if temp not in self.colors:
+                color = temp
+                self.colors.append(color)
+
+        return color
