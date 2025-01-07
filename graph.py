@@ -13,11 +13,11 @@ class CONST:
     CANVAS_WIDTH_PX = APP_WIDTH_PX - 200
     CANVAS_HEIGHT_PX = APP_HEIGHT_PX - 40
 
-    RANDOM_GRAPH_POINTS = 145
+    RANDOM_GRAPH_POINTS = 30
     POINT_RADIUS = 1
     EDGE_WIDTH = .5
 
-    FDG_ITERATIONS = 100
+    FDG_ITERATIONS = 50
     FDG_REPULSION_CONSTANT = 6000
     FDG_ATTRACTION_CONSTANT = 0.03
     FDG_DAMPING_CONSTANT = 1
@@ -115,7 +115,7 @@ class Graph(tk.Canvas):
                 x1, y1 = self._get_node_center(n1)
                 x2, y2 = self._get_node_center(n2)
 
-                edge_id = self.create_line(x1, y1, x2, y2, fill=CONST.EDGE_COLOR, width=.5, arrow=tk.LAST)
+                edge_id = self.create_line(x1, y1, x2, y2, fill=CONST.EDGE_COLOR, width=.5)
                 self.tag_lower(edge_id)
                 self.edges[(n1, n2)] = edge_id
 
@@ -148,7 +148,7 @@ class Graph(tk.Canvas):
         self.edges = {}
         self.delete("all")
 
-    def add_one_side_edges(self, arrow=True):
+    def add_one_side_edges(self):
         for i, n1 in enumerate(self.selected):
             for j, n2 in enumerate(self.selected):
                 if i >= j or (n1, n2) in self.edges:
@@ -157,8 +157,7 @@ class Graph(tk.Canvas):
                 x1, y1 = self._get_node_center(n1)
                 x2, y2 = self._get_node_center(n2)
 
-                edge_id = self.create_line(x1, y1, x2, y2, fill=CONST.EDGE_COLOR, width=CONST.EDGE_WIDTH,
-                                           arrow=tk.LAST if arrow else None)
+                edge_id = self.create_line(x1, y1, x2, y2, fill=CONST.EDGE_COLOR, width=CONST.EDGE_WIDTH)
                 self.tag_lower(edge_id)
                 self.edges[(n1, n2)] = edge_id
 
@@ -289,15 +288,27 @@ class Graph(tk.Canvas):
                 self.edges[(node_1, node_2)] = edge_id
 
         self.update()
-        self.louvain_method()
 
-    def louvain_method(self):
+        text_field.delete("1.0", tk.END)
+        text_field.insert("1.0", "Import finished\n")
+
+    def remove_edges(self):
+        self.delete(*self.edges.values())
+        self.update()
+
+    def louvain_method(self, btn, text_input):
+        btn["state"] = "disabled"
+        text_input.delete("1.0", tk.END)
+        text_input.insert("1.0", "Louvain started\n")
+        text_input.update()
         # Step 1: Initialization - Each community is a single node
         current_partition = {node: node for node in self.nodes}
         current_modularity = self._calculate_modularity(self.nodes, current_partition)
         best_partition = current_partition
         best_modularity = current_modularity
         print(f"Initial modularity: {current_modularity:.4f}")
+        text_input.insert(tk.END, f"Initial modularity: {current_modularity:.4f}\n")
+        text_input.update()
 
         while True:
             improved = False
@@ -323,6 +334,8 @@ class Graph(tk.Canvas):
 
             new_modularity = self._calculate_modularity(self.nodes, current_partition)
             print(f"New modularity: {new_modularity:.4f}")
+            text_input.insert(tk.END, f"New modularity: {new_modularity:.4f}\n")
+            text_input.update()
 
             if new_modularity > best_modularity:
                 best_partition = current_partition
@@ -331,7 +344,9 @@ class Graph(tk.Canvas):
             if not improved:
                 break
 
-        print(f"Best modularity: {best_modularity}")
+        print(f"Best modularity: {best_modularity:.4f}")
+        text_input.insert(tk.END, f"Best modularity: {best_modularity:.4f}\n")
+        text_input.update()
 
         if len(set(best_partition.values())) <= 50:
             community_colors = {value: self.colors.pop() for value in set(best_partition.values())}
@@ -390,8 +405,10 @@ class Graph(tk.Canvas):
         for node in self.nodes:
             self.resize_node(node, 8)
 
+        btn["state"] = "normal"
         self.update()
         print('Louvain done')
+        text_input.insert(tk.END, 'Louvain done')
 
     def resize_node(self, node_id, r):
         x1, y1, x2, y2 = self.coords(node_id)

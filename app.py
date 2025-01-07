@@ -32,7 +32,18 @@ def build_tk():
     random_graph_btn = tk.Button(row2, text="Random graph", command=canvas.generate_random_graph)
     random_graph_btn.pack(side=tk.LEFT)
 
-    louvain_btn = tk.Button(row2, text="Louvain method", command=canvas.louvain_method)
+    louvain_btn = tk.Button(
+        row2,
+        text="Louvain method",
+        command=lambda: canvas.louvain_method(louvain_btn, text_input)
+    )
+    louvain_btn.pack(side=tk.LEFT)
+
+    louvain_btn = tk.Button(
+        row2,
+        text="Remove edges",
+        command=canvas.remove_edges
+    )
     louvain_btn.pack(side=tk.LEFT)
 
     force_direct_graph_btn = tk.Button(row2, text="Force-direct graph", command=canvas.force_direct_graph_algorithm)
@@ -44,7 +55,7 @@ def build_tk():
     reset_btn = tk.Button(row2, text="Reset", command=canvas.clear_graph)
     reset_btn.pack(side=tk.LEFT)
 
-    quit_btn = tk.Button(row2, text="Zamknij", command=root.quit)
+    quit_btn = tk.Button(row2, text="Close", command=root.quit)
     quit_btn.pack(side=tk.RIGHT)
 
     canvas.bind("<Button-1>", canvas.on_click)
